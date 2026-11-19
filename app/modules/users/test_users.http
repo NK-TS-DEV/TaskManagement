@@ -1,0 +1,57 @@
+@host = http://127.0.0.1:8000
+
+###
+GET {{host}}/
+Accept: application/json
+
+###
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "nikita@example.com",
+  "password": "StrongPassword123!"
+}
+
+###
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "nikita@example.com",
+  "password": "StrongPassword123!"
+}
+
+###
+POST {{host}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=nikita@example.com&password=StrongPassword123!
+
+> {%
+    client.test("Login returns 200 and access_token", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(Boolean(response.body.access_token), "Missing access_token");
+    });
+    if (response.body && response.body.access_token) {
+        client.global.set("auth_token", response.body.access_token);
+    }
+%}
+
+###
+GET {{host}}/users/me
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+###
+GET {{host}}/users/me
+Accept: application/json
+
+###
+GET {{host}}/users/me
+Authorization: Bearer invalid.token.value
+Accept: application/json
+
+###
+GET {{host}}/tasks
+Accept: application/json

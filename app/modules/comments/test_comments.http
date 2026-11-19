@@ -1,0 +1,70 @@
+@host = http://127.0.0.1:8000
+
+###
+POST {{host}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=nikita@example.com&password=StrongPassword123!
+
+> {%
+    client.test("Login returns 200 and access_token", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(Boolean(response.body.access_token), "Missing access_token");
+    });
+    if (response.body && response.body.access_token) {
+        client.global.set("auth_token", response.body.access_token);
+    }
+%}
+
+###
+POST {{host}}/tasks
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "Task for comments check",
+  "description": "Testing comment endpoints",
+  "priority": "Medium",
+  "deadline": "2027-01-15T18:00:00Z"
+}
+
+> {%
+    client.test("Task created with 201", function() {
+        client.assert(response.status === 201, "Expected 201 Created");
+    });
+    if (response.body && response.body.id) {
+        client.global.set("comment_task_id", response.body.id);
+    }
+%}
+
+###
+GET {{host}}/tasks/{{comment_task_id}}/comments
+Accept: application/json
+
+###
+POST {{host}}/tasks/{{comment_task_id}}/comments
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "content": "First comment on this task"
+}
+
+###
+GET {{host}}/tasks/{{comment_task_id}}/comments
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+###
+POST {{host}}/tasks/999999/comments
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "content": "Comment for missing task"
+}
+
+###
+GET {{host}}/tasks/999999/comments
+Authorization: Bearer {{auth_token}}
+Accept: application/json
