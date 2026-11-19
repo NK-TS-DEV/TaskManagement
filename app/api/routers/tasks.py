@@ -1,13 +1,15 @@
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.core.database import SessionDep
 from app.modules.tasks import services
-from app.modules.tasks.models import TaskStatus
+from app.modules.tasks.models import TaskPriority, TaskStatus
 from app.modules.tasks.schemas import (
     TaskCreate,
     TaskRead,
+    TaskStatsRead,
     TaskStatusUpdate,
     TaskUpdate,
 )
@@ -49,17 +51,52 @@ async def create_task_endpoint(
 async def list_tasks_endpoint(
     session: SessionDep,
     current_user: CurrentUser,
+    search: Optional[str] = Query(default=None, description="Search in title and description"),
     task_status: Optional[TaskStatus] = Query(default=None, alias="status"),
+    priority: Optional[TaskPriority] = Query(default=None),
     assignee_id: Optional[int] = Query(default=None),
     author_id: Optional[int] = Query(default=None),
+    deadline_from: Optional[datetime] = Query(default=None),
+    deadline_to: Optional[datetime] = Query(default=None),
+    sort_by: services.SortByField = Query(default="default"),
+    sort_order: services.SortOrder = Query(default="asc"),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ) -> list[TaskRead]:
     _ = current_user
     return await services.list_tasks(
         session,
         status=task_status,
+        priority=priority,
         assignee_id=assignee_id,
         author_id=author_id,
+        deadline_from=deadline_from,
+        deadline_to=deadline_to,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        limit=limit,
+        offset=offset,
     )
+
+
+@router.get("/overdue", response_model=list[TaskRead])
+async def get_overdue_tasks_endpoint(
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> list[TaskRead]:
+    _ = current_user
+    return await services.get_overdue_tasks(session)
+
+
+@router.get("/stats", response_model=TaskStatsRead)
+async def get_tasks_stats_endpoint(
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> TaskStatsRead:
+    _ = current_user
+    stats = await services.get_tasks_stats(session)
+    return TaskStatsRead(**stats)
 
 
 @router.get("/{task_id}", response_model=TaskRead)

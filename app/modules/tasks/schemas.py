@@ -38,3 +38,11 @@ class TaskRead(TaskBase):
     author_id: int
     created_at: datetime
     updated_at: datetime
+
+
+class TaskStatsRead(BaseModel):
+    total_tasks: int
+    by_status: dict[str, int]
+    by_priority: dict[str, int]
+    overdue_tasks: int
+    active_tasks: int
